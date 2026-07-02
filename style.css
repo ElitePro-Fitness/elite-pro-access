@@ -1,0 +1,25 @@
+body{
+    margin:0;
+    padding:0;
+    background:#111;
+    color:white;
+    font-family:Arial, Helvetica, sans-serif;
+    text-align:center;
+}
+
+h1{
+    margin-top:20px;
+    margin-bottom:20px;
+    font-size:42px;
+}
+
+#reader{
+    width:350px;
+    margin:auto;
+}
+
+#message{
+    margin-top:25px;
+    font-size:32px;
+    font-weight:bold;
+}
