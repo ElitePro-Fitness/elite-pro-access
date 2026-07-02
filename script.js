@@ -23,7 +23,11 @@ html5QrCode.start(
 
             const reponse = await fetch(API + "?id=" + encodeURIComponent(decodedText));
 
-            const client = await reponse.json();
+            const texte = await reponse.text();
+
+alert(texte);
+
+const client = JSON.parse(texte); client = await reponse.json();
 
             if(client.statut=="ACTIF"){
 
