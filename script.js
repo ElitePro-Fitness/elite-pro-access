@@ -1,9 +1,12 @@
 const API =
 "https://script.google.com/macros/s/AKfycbwUc0fDv1S9YdEMmnslGakQYssQeJvgMPRSavN2VPLtr8GaM2EQ8d_hqT9RRtSNG-6c/exec";
 
-document.getElementById("message").innerHTML = "Démarrage de la caméra...";
+const message = document.getElementById("message");
+const photo = document.getElementById("photo");
 
 const html5QrCode = new Html5Qrcode("reader");
+
+message.innerHTML = "Démarrage de la caméra...";
 
 html5QrCode.start(
     { facingMode: "environment" },
@@ -14,36 +17,38 @@ html5QrCode.start(
 
     async function(decodedText) {
 
-        html5QrCode.pause();
-
-        document.getElementById("message").innerHTML =
-        "Vérification...";
-
         try {
 
-            const reponse = await fetch(API + "?id=" + encodeURIComponent(decodedText));
+            html5QrCode.pause();
 
-            const texte = await reponse.text();
+            message.innerHTML = "Vérification...";
 
+            const reponse = await fetch(
+                API + "?id=" + encodeURIComponent(decodedText)
+            );
 
-
-const client = JSON.parse(texte);
+            const client = await reponse.json();
 
             if(client.statut=="ACTIF"){
 
-                document.body.style.background="green";
+                document.body.style.background="#0f8f32";
 
-                document.getElementById("message").innerHTML=
-                "✅ ACCÈS AUTORISÉ<br><br>"
-                +client.nom+" "+client.prenom;
+                photo.src = client.photo;
+                photo.style.display = "block";
+
+                message.innerHTML =
+                "✅ ACCÈS AUTORISÉ<br><br>" +
+                client.nom + " " + client.prenom;
 
             }
 
             else{
 
-                document.body.style.background="red";
+                document.body.style.background="#b30000";
 
-                document.getElementById("message").innerHTML=
+                photo.style.display = "none";
+
+                message.innerHTML =
                 "❌ ACCÈS REFUSÉ";
 
             }
@@ -52,10 +57,12 @@ const client = JSON.parse(texte);
 
         catch(e){
 
+            photo.style.display = "none";
+
             document.body.style.background="orange";
 
-            document.getElementById("message").innerHTML=
-            "Erreur : "+e;
+            message.innerHTML =
+            "Erreur : " + e;
 
         }
 
@@ -63,8 +70,10 @@ const client = JSON.parse(texte);
 
             document.body.style.background="#111";
 
-            document.getElementById("message").innerHTML=
-            "Présentez un QR Code";
+            photo.style.display="none";
+
+            message.innerHTML =
+            "Présentez votre QR Code";
 
             html5QrCode.resume();
 
