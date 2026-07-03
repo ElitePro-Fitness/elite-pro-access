@@ -32,7 +32,8 @@ html5QrCode.start(
             if(client.statut=="ACTIF"){
 
                 document.body.style.background="#0f8f32";
-
+                console.log(client);
+alert(client.photo);
                 photo.src = client.photo;
                 photo.onload = function() {
     photo.style.display = "block";
