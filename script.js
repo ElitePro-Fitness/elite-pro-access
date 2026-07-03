@@ -25,7 +25,7 @@ html5QrCode.start(
 
             const texte = await reponse.text();
 
-alert(texte);
+
 
 const client = JSON.parse(texte);
 
