@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
 
 <meta charset="UTF-8">
@@ -9,6 +10,8 @@
 
 <link rel="stylesheet" href="style.css">
 
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 </head>
 
 <body>
@@ -17,13 +20,26 @@
 
 <div id="reader"></div>
 
-<div id="message">
-Prêt à scanner...
-</div>
+<img
+id="photo"
+style="
+display:none;
+width:220px;
+height:220px;
+border-radius:20px;
+object-fit:cover;
+margin-top:20px;
+border:5px solid white;
+">
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+<div id="message">
+
+Présentez votre QR Code
+
+</div>
 
 <script src="script.js"></script>
 
 </body>
+
 </html>
