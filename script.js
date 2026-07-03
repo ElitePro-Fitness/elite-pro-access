@@ -34,7 +34,9 @@ html5QrCode.start(
                 document.body.style.background="#0f8f32";
 
                 photo.src = client.photo;
-                photo.style.display = "block";
+                photo.onload = function() {
+    photo.style.display = "block";
+};                
 
                 message.innerHTML =
                 "✅ ACCÈS AUTORISÉ<br><br>" +
