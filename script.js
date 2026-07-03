@@ -27,7 +27,7 @@ html5QrCode.start(
 
 alert(texte);
 
-const client = JSON.parse(texte); client = await reponse.json();
+const client = JSON.parse(texte);
 
             if(client.statut=="ACTIF"){
 
