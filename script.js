@@ -46,7 +46,8 @@ html5QrCode.start(
             if(client.statut==="ACTIF"){
 
                 document.body.style.background="#008f39";
-
+successSound.currentTime = 0;
+successSound.play();
                 photo.src = "";
 
                 photo.style.display="none";
@@ -77,7 +78,8 @@ html5QrCode.start(
             else{
 
                 document.body.style.background="#b60000";
-
+errorSound.currentTime = 0;
+errorSound.play();
                 photo.style.display="none";
 
                 message.innerHTML=
