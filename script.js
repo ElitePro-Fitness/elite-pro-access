@@ -4,8 +4,8 @@ const API =
 const message = document.getElementById("message");
 const photo = document.getElementById("photo");
 const reader = document.getElementById("reader");
-
-let scannerBloque = false;
+const successSound = document.getElementById("successSound");
+const errorSound = document.getElementById("errorSound");let scannerBloque = false;
 
 const html5QrCode = new Html5Qrcode("reader");
 
