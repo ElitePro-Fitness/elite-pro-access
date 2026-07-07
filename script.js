@@ -42,8 +42,28 @@ html5QrCode.start(
             );
 
             const client = await reponse.json();
+if(client.statut==="DEJA_UTILISE"){
 
-            if(client.statut==="ACTIF"){
+    document.body.style.background="#b60000";
+
+    photo.src = client.photo + "&t=" + Date.now();
+
+    photo.style.display="block";
+
+    message.innerHTML =
+    "<div style='font-size:50px'>⛔</div>" +
+    "<div style='font-size:36px;font-weight:bold'>ACCÈS DÉJÀ UTILISÉ</div><br>" +
+    "<div style='font-size:28px'>" +
+    client.nom + " " + client.prenom +
+    "</div><br>" +
+    "<div style='font-size:24px'>Dernière entrée :</div>" +
+    "<div style='font-size:34px;font-weight:bold'>" +
+    client.derniereHeure +
+    "</div>";
+
+}
+else if(client.statut==="ACTIF"){
+if(client.statut==="ACTIF"){
 
                 document.body.style.background="#008f39";
 successSound.currentTime = 0;
