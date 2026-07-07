@@ -113,7 +113,7 @@ html5QrCode.start(
 
             await html5QrCode.resume();
 
-        },4000);
+        },10000);
 
     },
 
