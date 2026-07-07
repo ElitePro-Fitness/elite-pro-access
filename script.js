@@ -47,7 +47,10 @@ html5QrCode.start(
 
                 document.body.style.background="#008f39";
 successSound.currentTime = 0;
-successSound.play();
+
+successSound.play().catch(function(e){
+    console.log(e);
+});
                 photo.src = "";
 
                 photo.style.display="none";
@@ -79,7 +82,10 @@ successSound.play();
 
                 document.body.style.background="#b60000";
 errorSound.currentTime = 0;
-errorSound.play();
+
+errorSound.play().catch(function(e){
+    console.log(e);
+});
                 photo.style.display="none";
 
                 message.innerHTML=
