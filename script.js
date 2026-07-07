@@ -88,9 +88,29 @@ errorSound.play().catch(function(e){
 });
                 photo.style.display="none";
 
-                message.innerHTML=
-                "<div style='font-size:50px'>❌</div>" +
-                "<div style='font-size:38px;font-weight:bold'>ACCÈS REFUSÉ</div>";
+                let dateExp = "";
+
+if (client.expiration) {
+
+    const d = new Date(client.expiration);
+
+    dateExp =
+        d.getDate().toString().padStart(2,"0") + "." +
+        (d.getMonth()+1).toString().padStart(2,"0") + "." +
+        d.getFullYear();
+
+}
+
+message.innerHTML =
+"<div style='font-size:50px'>❌</div>" +
+"<div style='font-size:38px;font-weight:bold'>ACCÈS REFUSÉ</div><br>" +
+"<div style='font-size:26px'>" +
+client.nom + " " + client.prenom +
+"</div><br>" +
+"<div style='font-size:22px'>Abonnement expiré le :</div>" +
+"<div style='font-size:30px;font-weight:bold'>" +
+dateExp +
+"</div>";
 
             }
 
