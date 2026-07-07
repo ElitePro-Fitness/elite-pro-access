@@ -3,16 +3,17 @@ const API =
 
 const message = document.getElementById("message");
 const photo = document.getElementById("photo");
-const reader = document.getElementById("reader");
-const successSound = document.getElementById("successSound");
-const errorSound = document.getElementById("errorSound");let scannerBloque = false;
+
+let scannerBloque = false;
 
 const html5QrCode = new Html5Qrcode("reader");
 
 message.innerHTML = "Démarrage de la caméra...";
 
 html5QrCode.start(
+
     { facingMode: "environment" },
+
     {
         fps: 15,
         qrbox: {
@@ -21,7 +22,7 @@ html5QrCode.start(
         }
     },
 
-    async function(decodedText) {
+    async function(decodedText){
 
         if(scannerBloque) return;
 
@@ -31,49 +32,25 @@ html5QrCode.start(
 
             await html5QrCode.pause(true);
 
-            message.innerHTML = "Vérification...";
+            message.innerHTML="Vérification...";
 
             const reponse = await fetch(
+
                 API + "?id=" + encodeURIComponent(decodedText),
+
                 {
                     method:"GET",
                     cache:"no-store"
                 }
+
             );
 
             const client = await reponse.json();
-if(client.statut==="DEJA_UTILISE"){
 
-    document.body.style.background="#b60000";
+            photo.style.display="none";
+            photo.src="";
 
-    photo.src = client.photo + "&t=" + Date.now();
-
-    photo.style.display="block";
-
-    message.innerHTML =
-    "<div style='font-size:50px'>⛔</div>" +
-    "<div style='font-size:36px;font-weight:bold'>ACCÈS DÉJÀ UTILISÉ</div><br>" +
-    "<div style='font-size:28px'>" +
-    client.nom + " " + client.prenom +
-    "</div><br>" +
-    "<div style='font-size:24px'>Dernière entrée :</div>" +
-    "<div style='font-size:34px;font-weight:bold'>" +
-    client.derniereHeure +
-    "</div>";
-
-}
-else if(client.statut==="ACTIF"){
-if(client.statut==="ACTIF"){
-
-                document.body.style.background="#008f39";
-successSound.currentTime = 0;
-
-successSound.play().catch(function(e){
-    console.log(e);
-});
-                photo.src = "";
-
-                photo.style.display="none";
+            if(client.photo){
 
                 photo.onload=function(){
 
@@ -83,54 +60,97 @@ successSound.play().catch(function(e){
 
                 photo.onerror=function(){
 
-                    console.log("Impossible de charger la photo.");
+                    photo.style.display="none";
 
                 };
 
-                photo.src = client.photo + "&t=" + Date.now();
+                photo.src=client.photo+"&t="+Date.now();
+
+            }
+
+            if(client.statut==="ACTIF"){
+
+                document.body.style.background="#008f39";
 
                 message.innerHTML=
-                "<div style='font-size:50px'>✅</div>" +
-                "<div style='font-size:38px;font-weight:bold'>ACCÈS AUTORISÉ</div><br>" +
-                "<div style='font-size:30px'>" +
-                client.nom + " " + client.prenom +
+
+                "<div style='font-size:55px'>✅</div>"+
+
+                "<div style='font-size:38px;font-weight:bold'>ACCÈS AUTORISÉ</div><br>"+
+
+                "<div style='font-size:30px'>"+
+
+                client.nom+" "+client.prenom+
+
+                "</div>";
+
+            }
+
+            else if(client.statut==="DEJA_UTILISE"){
+
+                document.body.style.background="#b60000";
+
+                message.innerHTML=
+
+                "<div style='font-size:55px'>⛔</div>"+
+
+                "<div style='font-size:36px;font-weight:bold'>ACCÈS DÉJÀ UTILISÉ</div><br>"+
+
+                "<div style='font-size:30px'>"+
+
+                client.nom+" "+client.prenom+
+
+                "</div><br>"+
+
+                "<div style='font-size:22px'>Dernière entrée</div>"+
+
+                "<div style='font-size:34px;font-weight:bold'>"+
+
+                client.derniereHeure+
+
                 "</div>";
 
             }
 
             else{
 
+                let dateExp="";
+
+                if(client.expiration){
+
+                    const d=new Date(client.expiration);
+
+                    dateExp=
+
+                    d.getDate().toString().padStart(2,"0")+"."+
+
+                    (d.getMonth()+1).toString().padStart(2,"0")+"."+
+
+                    d.getFullYear();
+
+                }
+
                 document.body.style.background="#b60000";
-errorSound.currentTime = 0;
 
-errorSound.play().catch(function(e){
-    console.log(e);
-});
-                photo.style.display="none";
+                message.innerHTML=
 
-                let dateExp = "";
+                "<div style='font-size:55px'>❌</div>"+
 
-if (client.expiration) {
+                "<div style='font-size:36px;font-weight:bold'>ACCÈS REFUSÉ</div><br>"+
 
-    const d = new Date(client.expiration);
+                "<div style='font-size:30px'>"+
 
-    dateExp =
-        d.getDate().toString().padStart(2,"0") + "." +
-        (d.getMonth()+1).toString().padStart(2,"0") + "." +
-        d.getFullYear();
+                client.nom+" "+client.prenom+
 
-}
+                "</div><br>"+
 
-message.innerHTML =
-"<div style='font-size:50px'>❌</div>" +
-"<div style='font-size:38px;font-weight:bold'>ACCÈS REFUSÉ</div><br>" +
-"<div style='font-size:26px'>" +
-client.nom + " " + client.prenom +
-"</div><br>" +
-"<div style='font-size:22px'>Abonnement expiré le :</div>" +
-"<div style='font-size:30px;font-weight:bold'>" +
-dateExp +
-"</div>";
+                "<div style='font-size:22px'>Abonnement expiré le</div>"+
+
+                "<div style='font-size:34px;font-weight:bold'>"+
+
+                dateExp+
+
+                "</div>";
 
             }
 
@@ -138,11 +158,12 @@ dateExp +
 
         catch(e){
 
-            document.body.style.background="#d98300";
-
             photo.style.display="none";
 
+            document.body.style.background="#d98b00";
+
             message.innerHTML=
+
             "<b>Erreur</b><br><br>"+e;
 
         }
@@ -159,9 +180,16 @@ dateExp +
 
             scannerBloque=false;
 
-            await html5QrCode.resume();
+            try{
 
-        },8000);
+                await html5QrCode.resume();
+
+            }
+            catch(e){
+
+            }
+
+        },10000);
 
     },
 
