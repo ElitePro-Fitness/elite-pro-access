@@ -3,6 +3,9 @@ const API =
 
 const message = document.getElementById("message");
 const photo = document.getElementById("photo");
+const reader = document.getElementById("reader");
+
+let scannerBloque = false;
 
 const html5QrCode = new Html5Qrcode("reader");
 
@@ -11,48 +14,75 @@ message.innerHTML = "Démarrage de la caméra...";
 html5QrCode.start(
     { facingMode: "environment" },
     {
-        fps: 10,
-        qrbox: 250
+        fps: 15,
+        qrbox: {
+            width: 260,
+            height: 260
+        }
     },
 
     async function(decodedText) {
 
-        try {
+        if(scannerBloque) return;
 
-            html5QrCode.pause();
+        scannerBloque = true;
+
+        try{
+
+            await html5QrCode.pause(true);
 
             message.innerHTML = "Vérification...";
 
             const reponse = await fetch(
-                API + "?id=" + encodeURIComponent(decodedText)
+                API + "?id=" + encodeURIComponent(decodedText),
+                {
+                    method:"GET",
+                    cache:"no-store"
+                }
             );
 
             const client = await reponse.json();
 
-            if(client.statut=="ACTIF"){
+            if(client.statut==="ACTIF"){
 
-                document.body.style.background="#0f8f32";
-                console.log(client);
-alert(client.photo);
-                photo.src = client.photo;
-                photo.onload = function() {
-    photo.style.display = "block";
-};                
+                document.body.style.background="#008f39";
 
-                message.innerHTML =
-                "✅ ACCÈS AUTORISÉ<br><br>" +
-                client.nom + " " + client.prenom;
+                photo.src = "";
+
+                photo.style.display="none";
+
+                photo.onload=function(){
+
+                    photo.style.display="block";
+
+                };
+
+                photo.onerror=function(){
+
+                    console.log("Impossible de charger la photo.");
+
+                };
+
+                photo.src = client.photo + "&t=" + Date.now();
+
+                message.innerHTML=
+                "<div style='font-size:50px'>✅</div>" +
+                "<div style='font-size:38px;font-weight:bold'>ACCÈS AUTORISÉ</div><br>" +
+                "<div style='font-size:30px'>" +
+                client.nom + " " + client.prenom +
+                "</div>";
 
             }
 
             else{
 
-                document.body.style.background="#b30000";
+                document.body.style.background="#b60000";
 
-                photo.style.display = "none";
+                photo.style.display="none";
 
-                message.innerHTML =
-                "❌ ACCÈS REFUSÉ";
+                message.innerHTML=
+                "<div style='font-size:50px'>❌</div>" +
+                "<div style='font-size:38px;font-weight:bold'>ACCÈS REFUSÉ</div>";
 
             }
 
@@ -60,30 +90,39 @@ alert(client.photo);
 
         catch(e){
 
-            photo.style.display = "none";
+            document.body.style.background="#d98300";
 
-            document.body.style.background="orange";
+            photo.style.display="none";
 
-            message.innerHTML =
-            "Erreur : " + e;
+            message.innerHTML=
+            "<b>Erreur</b><br><br>"+e;
 
         }
 
-        setTimeout(function(){
+        setTimeout(async function(){
 
             document.body.style.background="#111";
 
             photo.style.display="none";
 
-            message.innerHTML =
-            "Présentez votre QR Code";
+            photo.src="";
 
-            html5QrCode.resume();
+            message.innerHTML="Présentez votre QR Code";
 
-        },3000);
+            scannerBloque=false;
+
+            await html5QrCode.resume();
+
+        },4000);
 
     },
 
-    function(errorMessage){}
+    function(errorMessage){
 
-);
+    }
+
+).catch(function(err){
+
+    message.innerHTML="Erreur caméra : "+err;
+
+});
