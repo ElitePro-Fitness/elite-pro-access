@@ -121,7 +121,7 @@ errorSound.play().catch(function(e){
 
             await html5QrCode.resume();
 
-        },10000);
+        },8000);
 
     },
 
