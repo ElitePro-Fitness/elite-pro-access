@@ -1,15 +1,10 @@
 const API =
-  "https://script.google.com/macros/s/AKfycbwUc0fDv1S9YdEMmnslGakQYssQeJvgMPRSavN2VPLtr8GaM2EQ8d_hqT9RRtSNG-6c/exec";
-
+  "https://script.google.com/macros/s/AKfycbzz5LO_ebqHDwicrJSjPQmnGxyDJp4dx9PTSP1c7NqNR5wNH3mOwkyioSrktkzSVYc/exec";
 const message = document.getElementById("message");
 const photo = document.getElementById("photo");
-
 let scannerBloque = false;
-
 const html5QrCode = new Html5Qrcode("reader");
-
 message.innerHTML = "Démarrage de la caméra...";
-
 html5QrCode.start(
   { facingMode: "environment" },
   {
@@ -23,14 +18,10 @@ html5QrCode.start(
     if (scannerBloque) {
       return;
     }
-
     scannerBloque = true;
-
     try {
       await html5QrCode.pause(true);
-
       message.innerHTML = "Vérification...";
-
       const reponse = await fetch(
         API + "?id=" + encodeURIComponent(decodedText),
         {
@@ -39,7 +30,6 @@ html5QrCode.start(
         }
       );
       const client = await reponse.json();
-
       showClientPhoto(client.photo);
       showScanResult(client);
     } catch (error) {
@@ -47,7 +37,6 @@ html5QrCode.start(
       document.body.style.background = "#d98b00";
       message.innerHTML = "<b>Erreur</b><br><br>" + error;
     }
-
     setTimeout(resetScanner, 10000);
   },
   function () {
@@ -55,26 +44,20 @@ html5QrCode.start(
 ).catch(function (error) {
   message.innerHTML = "Erreur caméra : " + error;
 });
-
 function showClientPhoto(photoUrl) {
   photo.style.display = "none";
   photo.src = "";
-
   if (!photoUrl) {
     return;
   }
-
   photo.onload = function () {
     photo.style.display = "block";
   };
-
   photo.onerror = function () {
     photo.style.display = "none";
   };
-
   photo.src = photoUrl + "&t=" + Date.now();
 }
-
 function showScanResult(client) {
   if (client.statut === "ACTIF") {
     document.body.style.background = "#008f39";
@@ -86,7 +69,6 @@ function showScanResult(client) {
       "</div>";
     return;
   }
-
   if (client.statut === "BIENTOT_EXPIRE") {
     document.body.style.background = "#d98b00";
     message.innerHTML =
@@ -100,7 +82,6 @@ function showScanResult(client) {
       "</div>";
     return;
   }
-
   if (client.statut === "DEJA_UTILISE") {
     document.body.style.background = "#b60000";
     message.innerHTML =
@@ -115,7 +96,6 @@ function showScanResult(client) {
       "</div>";
     return;
   }
-
   if (client.statut === "SALLE_NON_AUTORISEE") {
     document.body.style.background = "#b60000";
     message.innerHTML =
@@ -126,7 +106,6 @@ function showScanResult(client) {
       "</div>";
     return;
   }
-
   document.body.style.background = "#b60000";
   message.innerHTML =
     "<div style='font-size:55px'>❌</div>" +
@@ -139,46 +118,36 @@ function showScanResult(client) {
     escapeHtml(formatExpiration(client.expiration)) +
     "</div>";
 }
-
 function getRenewalMessage(days) {
   const remainingDays = Number(days);
-
   if (remainingDays === 0) {
     return "L'abonnement se termine aujourd’hui — prévenir le client.";
   }
-
   return "Il reste " + remainingDays +
     " jour" + (remainingDays > 1 ? "s" : "") +
     " — prévenir le client.";
 }
-
 function formatExpiration(value) {
   if (!value) {
     return "";
   }
-
   const date = new Date(value);
-
   if (isNaN(date.getTime())) {
     return "";
   }
-
   return date.getDate().toString().padStart(2, "0") + "." +
     (date.getMonth() + 1).toString().padStart(2, "0") + "." +
     date.getFullYear();
 }
-
 function resetScanner() {
   document.body.style.background = "#111";
   photo.style.display = "none";
   photo.src = "";
   message.innerHTML = "Présentez votre QR Code";
   scannerBloque = false;
-
   html5QrCode.resume().catch(function () {
   });
 }
-
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
