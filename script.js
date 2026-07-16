@@ -1,222 +1,189 @@
-const SALLE_SCANNER = "TXADA";
-const COLONNE_ACCES_SALLES = 11;
+const API =
+  "https://script.google.com/macros/s/AKfycbwUc0fDv1S9YdEMmnslGakQYssQeJvgMPRSavN2VPLtr8GaM2EQ8d_hqT9RRtSNG-6c/exec";
 
-function doGet(e) {
-  if (!e || !e.parameter || !e.parameter.id) {
-    return HtmlService.createHtmlOutputFromFile("index");
-  }
+const message = document.getElementById("message");
+const photo = document.getElementById("photo");
 
-  return ContentService
-    .createTextOutput(getClient(e.parameter.id))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+let scannerBloque = false;
 
-function getClient(id) {
-  var feuille = SpreadsheetApp.getActiveSpreadsheet()
-    .getSheetByName("Cliente");
-  var donnees = feuille.getDataRange().getValues();
+const html5QrCode = new Html5Qrcode("reader");
 
-  for (var i = 1; i < donnees.length; i++) {
-    if (String(donnees[i][0]) === String(id)) {
-      return getClientResponse(donnees[i]);
+message.innerHTML = "Démarrage de la caméra...";
+
+html5QrCode.start(
+  { facingMode: "environment" },
+  {
+    fps: 15,
+    qrbox: {
+      width: 260,
+      height: 260
     }
-  }
-
-  return JSON.stringify({
-    nom: "Client",
-    prenom: "introuvable",
-    photo: "",
-    statut: ""
-  });
-}
-
-function getClientResponse(client) {
-  var id = String(client[0]);
-  var statutClient = String(client[6] || "").toUpperCase();
-  var expiration = new Date(client[7]);
-  var employe = id.startsWith("E");
-  var expire = isSubscriptionExpired(expiration, employe);
-  var abonnementActif = statutClient === "ACTIF" && !expire;
-  var accesSalles = getAccessSalles(client, employe);
-  var salleAutorisee = isSalleAutorisee(accesSalles);
-  var actif = abonnementActif && salleAutorisee;
-  var entree = getEntryStatus(id, actif);
-
-  if (actif && entree.autoriser) {
-    addEntry(client);
-  }
-
-  return JSON.stringify({
-    nom: client[1],
-    prenom: client[2],
-    photo: getPhotoUrl(client),
-    statut: getAccessStatus(
-      abonnementActif,
-      salleAutorisee,
-      entree.autoriser
-    ),
-    expiration: client[7],
-    derniereHeure: entree.derniereHeure,
-    salle: SALLE_SCANNER
-  });
-}
-
-function getAccessSalles(client, employe) {
-  if (employe) {
-    return "AMBAS";
-  }
-
-  var acces = String(
-    client[COLONNE_ACCES_SALLES - 1] || ""
-  ).toUpperCase();
-
-  if (acces === "BAIXO" || acces === "AMBAS") {
-    return acces;
-  }
-
-  return "TXADA";
-}
-
-function isSalleAutorisee(accesSalles) {
-  return accesSalles === "AMBAS" ||
-    accesSalles === SALLE_SCANNER;
-}
-
-function isSubscriptionExpired(expiration, employe) {
-  if (employe) {
-    return false;
-  }
-
-  if (isNaN(expiration.getTime())) {
-    return true;
-  }
-
-  expiration.setHours(23, 59, 59, 999);
-
-  return expiration.getTime() < new Date().getTime();
-}
-
-function getEntryStatus(id, actif) {
-  var resultat = { autoriser: actif, derniereHeure: "" };
-
-  if (!actif || id.startsWith("E")) {
-    return resultat;
-  }
-
-  var entradas = getEntradasSheet();
-  var derniereLigne = entradas.getLastRow();
-
-  if (derniereLigne <= 1) {
-    return resultat;
-  }
-
-  var entrees = entradas
-    .getRange(2, 1, derniereLigne - 1, 4)
-    .getValues();
-
-  for (var i = entrees.length - 1; i >= 0; i--) {
-    if (String(entrees[i][1]) === id) {
-      var derniereEntree = new Date(entrees[i][0]);
-      var differenceMinutes =
-        (new Date() - derniereEntree) / 1000 / 60;
-
-      if (differenceMinutes < 540) {
-        resultat.autoriser = false;
-        resultat.derniereHeure = formatTime(derniereEntree);
-      }
-
-      break;
+  },
+  async function (decodedText) {
+    if (scannerBloque) {
+      return;
     }
+
+    scannerBloque = true;
+
+    try {
+      await html5QrCode.pause(true);
+
+      message.innerHTML = "Vérification...";
+
+      const reponse = await fetch(
+        API + "?id=" + encodeURIComponent(decodedText),
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+      const client = await reponse.json();
+
+      showClientPhoto(client.photo);
+      showScanResult(client);
+    } catch (error) {
+      photo.style.display = "none";
+      document.body.style.background = "#d98b00";
+      message.innerHTML = "<b>Erreur</b><br><br>" + error;
+    }
+
+    setTimeout(resetScanner, 10000);
+  },
+  function () {
+  }
+).catch(function (error) {
+  message.innerHTML = "Erreur caméra : " + error;
+});
+
+function showClientPhoto(photoUrl) {
+  photo.style.display = "none";
+  photo.src = "";
+
+  if (!photoUrl) {
+    return;
   }
 
-  return resultat;
+  photo.onload = function () {
+    photo.style.display = "block";
+  };
+
+  photo.onerror = function () {
+    photo.style.display = "none";
+  };
+
+  photo.src = photoUrl + "&t=" + Date.now();
 }
 
-function getEntradasSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  return ss.getSheetByName("Entradas") ||
-    ss.getSheetByName("ENTRADAS");
-}
-
-function addEntry(client) {
-  getEntradasSheet().appendRow([
-    new Date(),
-    client[0],
-    client[1] + " " + client[2],
-    client[6]
-  ]);
-}
-
-function getAccessStatus(abonnementActif, salleAutorisee, autoriser) {
-  if (!abonnementActif) {
-    return "EXPIRE";
+function showScanResult(client) {
+  if (client.statut === "ACTIF") {
+    document.body.style.background = "#008f39";
+    message.innerHTML =
+      "<div style='font-size:55px'>✅</div>" +
+      "<div style='font-size:38px;font-weight:bold'>ACCÈS AUTORISÉ</div><br>" +
+      "<div style='font-size:30px'>" +
+      escapeHtml(client.nom + " " + client.prenom) +
+      "</div>";
+    return;
   }
 
-  if (!salleAutorisee) {
-    return "SALLE_NON_AUTORISEE";
+  if (client.statut === "BIENTOT_EXPIRE") {
+    document.body.style.background = "#d98b00";
+    message.innerHTML =
+      "<div style='font-size:55px'>⚠️</div>" +
+      "<div style='font-size:36px;font-weight:bold'>RENOUVELLEMENT BIENTÔT</div><br>" +
+      "<div style='font-size:30px'>" +
+      escapeHtml(client.nom + " " + client.prenom) +
+      "</div><br>" +
+      "<div style='font-size:24px'>" +
+      getRenewalMessage(client.joursRestants) +
+      "</div>";
+    return;
   }
 
-  return autoriser ? "ACTIF" : "DEJA_UTILISE";
+  if (client.statut === "DEJA_UTILISE") {
+    document.body.style.background = "#b60000";
+    message.innerHTML =
+      "<div style='font-size:55px'>⛔</div>" +
+      "<div style='font-size:36px;font-weight:bold'>ACCÈS DÉJÀ UTILISÉ</div><br>" +
+      "<div style='font-size:30px'>" +
+      escapeHtml(client.nom + " " + client.prenom) +
+      "</div><br>" +
+      "<div style='font-size:22px'>Dernière entrée</div>" +
+      "<div style='font-size:34px;font-weight:bold'>" +
+      escapeHtml(client.derniereHeure || "") +
+      "</div>";
+    return;
+  }
+
+  if (client.statut === "SALLE_NON_AUTORISEE") {
+    document.body.style.background = "#b60000";
+    message.innerHTML =
+      "<div style='font-size:55px'>🚫</div>" +
+      "<div style='font-size:36px;font-weight:bold'>SALLE NON AUTORISÉE</div><br>" +
+      "<div style='font-size:30px'>" +
+      escapeHtml(client.nom + " " + client.prenom) +
+      "</div>";
+    return;
+  }
+
+  document.body.style.background = "#b60000";
+  message.innerHTML =
+    "<div style='font-size:55px'>❌</div>" +
+    "<div style='font-size:36px;font-weight:bold'>ACCÈS REFUSÉ</div><br>" +
+    "<div style='font-size:30px'>" +
+    escapeHtml(client.nom + " " + client.prenom) +
+    "</div><br>" +
+    "<div style='font-size:22px'>Abonnement expiré le</div>" +
+    "<div style='font-size:34px;font-weight:bold'>" +
+    escapeHtml(formatExpiration(client.expiration)) +
+    "</div>";
 }
 
-function getPhotoUrl(client) {
-  var photoUrl = String(client[5] || "");
+function getRenewalMessage(days) {
+  const remainingDays = Number(days);
 
-  if (photoUrl.indexOf("http") === 0) {
-    return photoUrl;
+  if (remainingDays === 0) {
+    return "L'abonnement se termine aujourd’hui — prévenir le client.";
   }
 
-  var fileId = photoUrl || String(client[4] || "");
+  return "Il reste " + remainingDays +
+    " jour" + (remainingDays > 1 ? "s" : "") +
+    " — prévenir le client.";
+}
 
-  if (!fileId) {
+function formatExpiration(value) {
+  if (!value) {
     return "";
   }
 
-  return "https://drive.google.com/thumbnail?id=" +
-    fileId + "&sz=w500";
-}
+  const date = new Date(value);
 
-function formatTime(date) {
-  return date.getHours().toString().padStart(2, "0") +
-    ":" + date.getMinutes().toString().padStart(2, "0");
-}
-
-function traiterPaiements() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var clients = ss.getSheetByName("Cliente");
-  var paiements = ss.getSheetByName("Pagamento");
-  var dataPaiements = paiements.getDataRange().getValues();
-  var dataClients = clients.getDataRange().getValues();
-
-  for (var i = 1; i < dataPaiements.length; i++) {
-    if (dataPaiements[i][7] === "OK") {
-      continue;
-    }
-
-    var id = dataPaiements[i][1];
-    var mois = Number(dataPaiements[i][4]);
-
-    for (var j = 1; j < dataClients.length; j++) {
-      if (dataClients[j][0] === id) {
-        var aujourdHui = new Date();
-        var dateFin = new Date(dataClients[j][7]);
-        var nouvelleDate = dateFin >= aujourdHui
-          ? new Date(dateFin)
-          : new Date(aujourdHui);
-
-        nouvelleDate.setMonth(nouvelleDate.getMonth() + mois);
-        clients.getRange(j + 1, 8).setValue(nouvelleDate);
-        paiements.getRange(i + 1, 8).setValue("OK");
-        break;
-      }
-    }
+  if (isNaN(date.getTime())) {
+    return "";
   }
+
+  return date.getDate().toString().padStart(2, "0") + "." +
+    (date.getMonth() + 1).toString().padStart(2, "0") + "." +
+    date.getFullYear();
 }
 
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("Elite Pro")
-    .addItem("Traiter les paiements", "traiterPaiements")
-    .addToUi();
+function resetScanner() {
+  document.body.style.background = "#111";
+  photo.style.display = "none";
+  photo.src = "";
+  message.innerHTML = "Présentez votre QR Code";
+  scannerBloque = false;
+
+  html5QrCode.resume().catch(function () {
+  });
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
